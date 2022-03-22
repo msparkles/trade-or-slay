@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use generational_arena::Arena;
 use macroquad::{camera::Camera2D, prelude::get_time};
 

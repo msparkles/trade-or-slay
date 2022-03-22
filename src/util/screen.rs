@@ -40,7 +40,7 @@ pub fn crop_to_world(x: &mut f32, y: &mut f32) {
 }
 
 pub fn make_camera() -> Camera2D {
-    let (w, h) = world_size();
+    let (w, h) = screen_center();
 
     Camera2D {
         target: world_center().into(),

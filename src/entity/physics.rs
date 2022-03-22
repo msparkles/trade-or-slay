@@ -2,7 +2,7 @@ use macroquad::prelude::{vec2, Vec2};
 
 use crate::util::screen::crop_to_world;
 
-use super::entity::{Entity, EntityHolder};
+use super::entity::{Entity};
 
 pub struct Physics {
     pub pos: Vec2,

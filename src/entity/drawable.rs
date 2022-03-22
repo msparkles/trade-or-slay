@@ -2,7 +2,7 @@ use macroquad::prelude::{DrawTextureParams, Texture2D, WHITE};
 
 use crate::util::{draw, screen::TWO};
 
-use super::{entity::Entity, physics::PhysicsLike, player::MapArea};
+use super::{entity::Entity, physics::PhysicsLike};
 
 #[derive(Clone, Copy)]
 pub struct Drawable {

@@ -1,12 +1,9 @@
 use macroquad::prelude::get_time;
 
-use crate::{
-    entity::{
-        drawable::Drawable,
-        entity::{Entity, EntityHolder},
-        physics::{Physics, PhysicsLike},
-    },
-    world::world::World,
+use crate::entity::{
+    drawable::Drawable,
+    entity::{Entity, EntityHolder},
+    physics::{Physics, PhysicsLike},
 };
 
 pub struct Projectile {

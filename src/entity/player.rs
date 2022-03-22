@@ -1,22 +1,11 @@
 use macroquad::prelude::{get_time, is_key_down, is_mouse_button_down};
 use miniquad::{KeyCode, MouseButton};
 
-use crate::{util::screen::screen_size, world::world::World};
-
 use super::{
     drawable::Drawable,
     entity::{Entity, EntityHolder},
-    physics::PhysicsLike,
-    projectile::projectile::{Projectile, ProjectileLike},
+    projectile::projectile::ProjectileLike,
 };
-
-#[derive(Clone, Copy)]
-pub enum MapArea {
-    UpLeft { offset_x: f32, offset_y: f32 },
-    UpRight { offset_x: f32, offset_y: f32 },
-    DownLeft { offset_x: f32, offset_y: f32 },
-    DownRight { offset_x: f32, offset_y: f32 },
-}
 
 pub struct Player {
     pub last_fire_time: f64,

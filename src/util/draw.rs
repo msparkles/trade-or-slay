@@ -1,10 +1,8 @@
-use std::borrow::Borrow;
 use std::pin::Pin;
 
 use macroquad::prelude::{self, vec2, Color, DrawTextureParams, Texture2D, Vec2};
 use macroquad::texture;
 
-use crate::entity::player::MapArea;
 use crate::util::screen::world_size;
 
 fn offsets() -> Vec<Vec2> {
@@ -25,15 +23,6 @@ fn offsets() -> Vec<Vec2> {
 
 lazy_static! {
     static ref OFFSETS: Pin<Vec<Vec2>> = Pin::new(offsets());
-}
-
-pub fn to_offset(area: MapArea) -> (f32, f32) {
-    match area {
-        MapArea::UpLeft { offset_x, offset_y }
-        | MapArea::UpRight { offset_x, offset_y }
-        | MapArea::DownLeft { offset_x, offset_y }
-        | MapArea::DownRight { offset_x, offset_y } => (offset_x, offset_y),
-    }
 }
 
 pub fn draw_texture_ex(

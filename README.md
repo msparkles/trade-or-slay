@@ -1,5 +1,5 @@
 # Trade or Slay
-A WIP Space Shooter game about you, a pirate, fighting Capitalism while also trading with capitalists.
+A WIP Roguelike Space Shooter game about you, a pirate, fighting Capitalism while also trading with capitalists.
 
 Uses Macroquad!
 

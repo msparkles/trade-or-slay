@@ -85,7 +85,6 @@ impl World {
         }
 
         let mut rigid_body_set = self.rigid_body_set.borrow_mut();
-        let mut collider_set = self.collider_set.borrow_mut();
 
         let current_time = get_time();
         let mut to_remove: Vec<EntityHolder> = vec![];

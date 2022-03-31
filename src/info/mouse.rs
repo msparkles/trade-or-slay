@@ -5,10 +5,7 @@ use macroquad::{
 };
 
 use crate::{
-    util::{
-        draw,
-        screen::{self, world_center, TWO},
-    },
+    util::screen::{self, world_center, TWO},
     CURSOR,
 };
 

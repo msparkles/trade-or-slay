@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use macroquad::prelude::{self, vec2, Color, DrawTextureParams, Texture2D, Vec2};
 use macroquad::texture;
 
@@ -22,7 +20,7 @@ fn offsets() -> Vec<Vec2> {
 }
 
 lazy_static! {
-    static ref OFFSETS: Pin<Vec<Vec2>> = Pin::new(offsets());
+    static ref OFFSETS: Vec<Vec2> = offsets();
 }
 
 pub fn draw_texture_ex(
@@ -32,7 +30,7 @@ pub fn draw_texture_ex(
     color: Color,
     params: DrawTextureParams,
 ) -> Option<()> {
-    OFFSETS.into_iter().for_each(|offset| {
+    OFFSETS.iter().for_each(|offset| {
         let (o_x, o_y) = (*offset).into();
 
         texture::draw_texture_ex(*texture, x + o_x, y + o_y, color, params.clone());
@@ -46,7 +44,7 @@ pub fn draw_texture(texture: &Texture2D, x: f32, y: f32, color: Color) -> Option
 }
 
 pub fn draw_line(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color) -> Option<()> {
-    OFFSETS.into_iter().for_each(|offset| {
+    OFFSETS.iter().for_each(|offset| {
         let (o_x, o_y) = (*offset).into();
 
         prelude::draw_line(x1 + o_x, y1 + o_y, x2 + o_x, y2 + o_y, thickness, color);

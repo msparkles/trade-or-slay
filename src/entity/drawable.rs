@@ -1,4 +1,5 @@
 use macroquad::prelude::{DrawTextureParams, Texture2D, WHITE};
+use rapier2d::prelude::RigidBodySet;
 
 use crate::util::{draw, screen::TWO};
 
@@ -10,25 +11,23 @@ pub struct Drawable {
 }
 
 pub trait DrawableLike {
-    fn draw(&self) -> Option<()>;
+    fn draw(&self, rigid_body_set: &RigidBodySet) -> Option<()>;
 }
 
 impl DrawableLike for Entity {
-    fn draw(&self) -> Option<()> {
-        let texture = self.drawable.as_ref()?.texture;
+    fn draw(&self, rigid_body_set: &RigidBodySet) -> Option<()> {
+        let ref texture = self.drawable.as_ref()?.texture;
 
         let mut options = DrawTextureParams::default();
-        options.rotation = self.rotation()?;
+        options.rotation = self.rotation(rigid_body_set)?.angle();
 
-        let (x, y) = self.pos()?.into();
-
-        draw::draw_texture_ex(
-            &texture,
-            x - texture.width() / TWO,
-            y - texture.height() / TWO,
-            WHITE,
-            options,
+        let pos = *self.pos(rigid_body_set)?;
+        let (x, y) = (
+            pos.x - texture.width() / TWO,
+            pos.y - texture.height() / TWO,
         );
+
+        draw::draw_texture_ex(texture, x, y, WHITE, options);
 
         Some(())
     }

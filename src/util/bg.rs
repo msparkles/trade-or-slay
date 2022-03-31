@@ -19,7 +19,7 @@ pub fn lines() -> Vec<(Vec2, Vec2)> {
     let (w, h) = (w / TWO, h / TWO);
 
     lines_local
-        .into_iter()
+        .iter()
         .map(move |line| {
             let mut a = line.0;
             let mut b = line.1;
@@ -35,7 +35,7 @@ pub fn lines() -> Vec<(Vec2, Vec2)> {
 }
 
 pub fn draw_bg() {
-    BG_LINES.clone().into_iter().for_each(|line| {
+    BG_LINES.iter().for_each(|line| {
         let a = line.0;
         let b = line.1;
 

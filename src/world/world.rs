@@ -1,9 +1,15 @@
-use generational_arena::Arena;
-use macroquad::{camera::Camera2D, prelude::get_time};
+use std::{borrow::BorrowMut, cell::RefCell};
+
+use generational_arena::{Arena, Index};
+use macroquad::{
+    camera::Camera2D,
+    prelude::{get_time, vec2},
+};
+use rapier2d::prelude::{ColliderSet, RigidBodySet};
 
 use crate::{
     entity::{
-        drawable::{Drawable, DrawableLike},
+        drawable::DrawableLike,
         entity::{Entity, EntityHolder},
         physics::PhysicsLike,
         player::PlayerLike,
@@ -14,11 +20,17 @@ use crate::{
 pub struct World {
     pub entities: Arena<Entity>,
     pub player: Option<EntityHolder>,
+    pub rigid_body_set: RefCell<RigidBodySet>,
+    pub collider_set: RefCell<ColliderSet>,
 }
 
 impl World {
-    pub fn get_entity(&mut self, holder: &EntityHolder) -> Option<&mut Entity> {
+    pub fn get_entity_mut(&mut self, holder: &EntityHolder) -> Option<&mut Entity> {
         self.entities.get_mut(*holder)
+    }
+
+    pub fn get_entity(&self, holder: &EntityHolder) -> Option<&Entity> {
+        self.entities.get(*holder)
     }
 
     pub fn add_entity(&mut self, entity: Entity) -> EntityHolder {
@@ -29,35 +41,63 @@ impl World {
         self.player = Some(self.add_entity(player));
     }
 
-    pub fn update(&mut self, camera: &mut Camera2D, drawable: &Drawable) -> Option<()> {
-        let player = self.player?;
+    fn mouse(&mut self, player: &Index, camera: &mut Camera2D) -> Option<()> {
+        let player_entity = self.get_entity_mut(&player)?;
 
-        let player_entity = self.get_entity(&player)?;
+        let mouse_info = player_entity.mouse_info_mut()?;
+        mouse_info.from_mouse(&camera);
+        mouse_info.draw_cursor();
 
-        //let area = player_entity.area_of_map()?;
+        Some(())
+    }
 
+    pub fn update(&mut self, camera: &mut Camera2D) -> Option<()> {
         draw_bg();
 
-        player_entity.update_input()?;
-        let projectile = player_entity.update_fire(&player, drawable);
+        let projectile = {
+            let player = self.player?;
 
-        camera.target = player_entity.pos()?;
+            {
+                let mut rigid_body_set = self.rigid_body_set.borrow_mut();
+
+                let player_entity = self.get_entity(&player)?;
+                let pos = *player_entity.pos(rigid_body_set.borrow_mut())?;
+                camera.target = vec2(pos.x, pos.y);
+            }
+
+            self.mouse(&player, camera);
+
+            let mut rigid_body_set = self.rigid_body_set.borrow_mut();
+            let mut collider_set = self.collider_set.borrow_mut();
+
+            let player_entity = self.get_entity(&player)?;
+            player_entity.update_input(rigid_body_set.borrow_mut())?;
+
+            player_entity.update_fire(
+                &player,
+                rigid_body_set.borrow_mut(),
+                collider_set.borrow_mut(),
+            )
+        };
 
         if let Some(projectile) = projectile {
             self.add_entity(projectile);
         }
 
+        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
+        let mut collider_set = self.collider_set.borrow_mut();
+
         let current_time = get_time();
         let mut to_remove: Vec<EntityHolder> = vec![];
 
         for (index, entity) in self.entities.iter_mut() {
-            entity.update_entity_position()?;
+            entity.update_entity_position(rigid_body_set.borrow_mut());
 
             if entity.update_projectile(current_time).unwrap_or(false) {
                 to_remove.push(index);
             }
 
-            entity.draw()?;
+            entity.draw(rigid_body_set.borrow_mut());
         }
 
         for index in to_remove {
@@ -73,6 +113,8 @@ impl Default for World {
         Self {
             entities: Arena::new(),
             player: None,
+            rigid_body_set: RefCell::new(RigidBodySet::new()),
+            collider_set: RefCell::new(ColliderSet::new()),
         }
     }
 }

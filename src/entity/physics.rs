@@ -1,80 +1,91 @@
-use macroquad::prelude::{vec2, Vec2};
+use nalgebra::{vector, Complex, Unit};
+use rapier2d::{
+    math::{Point, Real, Rotation, Vector},
+    prelude::{Collider, ColliderHandle, ColliderSet, RigidBody, RigidBodyHandle, RigidBodySet},
+};
 
 use crate::util::screen::crop_to_world;
 
-use super::entity::{Entity};
+use super::entity::Entity;
 
 pub struct Physics {
-    pub pos: Vec2,
-    pub velocity: f32,
-    pub rotation: f32,
+    pub rigid_body: RigidBodyHandle,
+    pub collider: ColliderHandle,
 }
 
-impl Default for Physics {
-    fn default() -> Self {
-        let pos = vec2(0.0, 0.0);
-        let velocity = 0.0;
-        let rotation = 0.0;
-
-        Self {
-            pos,
-            velocity,
-            rotation,
-        }
-    }
-}
 pub trait PhysicsLike {
-    fn pos(&self) -> Option<Vec2>;
-    fn velocity(&self) -> Option<f32>;
-    fn rotation(&self) -> Option<f32>;
+    fn get_rigid_body<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a RigidBody>;
+    fn get_rigid_body_mut<'a>(
+        &self,
+        rigid_body_set: &'a mut RigidBodySet,
+    ) -> Option<&'a mut RigidBody>;
 
-    fn angle_to(&self, pos: Vec2) -> Option<f32>;
-    fn rotation_to_unit_vector(&self) -> Option<Vec2>;
-    fn update_entity_position(&mut self) -> Option<()>;
+    fn get_collider<'a>(&self, collider_set: &'a ColliderSet) -> Option<&'a Collider>;
+    fn get_collider_mut<'a>(&self, collider_set: &'a mut ColliderSet) -> Option<&'a mut Collider>;
+
+    fn pos(&self, rigid_body_set: &RigidBodySet) -> Option<Point<Real>>;
+    fn velocity<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a Vector<Real>>;
+    fn rotation<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a Rotation<Real>>;
+
+    fn update_entity_position<'a>(&self, rigid_body_set: &'a mut RigidBodySet) -> Option<()>;
 }
 
 impl PhysicsLike for Entity {
-    fn pos(&self) -> Option<Vec2> {
-        Some(self.physics.as_ref()?.pos)
+    fn get_rigid_body<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a RigidBody> {
+        rigid_body_set.get(self.physics.as_ref()?.rigid_body)
     }
 
-    fn velocity(&self) -> Option<f32> {
-        Some(self.physics.as_ref()?.velocity)
+    fn get_rigid_body_mut<'a>(
+        &self,
+        rigid_body_set: &'a mut RigidBodySet,
+    ) -> Option<&'a mut RigidBody> {
+        rigid_body_set.get_mut(self.physics.as_ref()?.rigid_body)
     }
 
-    fn rotation(&self) -> Option<f32> {
-        Some(self.physics.as_ref()?.rotation)
+    fn get_collider<'a>(&self, collider_set: &'a ColliderSet) -> Option<&'a Collider> {
+        collider_set.get(self.physics.as_ref()?.collider)
+    }
+    fn get_collider_mut<'a>(&self, collider_set: &'a mut ColliderSet) -> Option<&'a mut Collider> {
+        collider_set.get_mut(self.physics.as_ref()?.collider)
     }
 
-    fn angle_to(&self, pos: Vec2) -> Option<f32> {
-        let d = pos - self.pos()?;
-
-        let mut r = d.y.atan2(d.x);
-        if r.is_nan() {
-            r = 0.0;
-        }
-
-        return Some(r);
+    fn pos(&self, rigid_body_set: &RigidBodySet) -> Option<Point<Real>> {
+        Some(
+            self.get_rigid_body(rigid_body_set)?
+                .position()
+                .transform_point(&Point::origin()),
+        )
     }
 
-    fn rotation_to_unit_vector(&self) -> Option<Vec2> {
-        Some((self.rotation()?.cos(), self.rotation()?.sin()).into())
+    fn velocity<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a Vector<Real>> {
+        Some(self.get_rigid_body(rigid_body_set)?.linvel())
     }
 
-    fn update_entity_position(&mut self) -> Option<()> {
+    fn rotation<'a>(&self, rigid_body_set: &'a RigidBodySet) -> Option<&'a Unit<Complex<f32>>> {
+        Some(self.get_rigid_body(rigid_body_set)?.rotation())
+    }
+
+    fn update_entity_position<'a>(&self, rigid_body_set: &'a mut RigidBodySet) -> Option<()> {
+        /*
         let d_pos = self.rotation_to_unit_vector()? * self.velocity()?;
 
         let ref mut pos = self.physics.as_mut()?.pos;
 
         // velocity
         *pos += d_pos;
+        */
+
+        let pos = self.pos(rigid_body_set)?;
+
+        let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
 
         // wrap
-        let (ref mut x, ref mut y) = (*pos).into();
-        crop_to_world(x, y);
+        let pos = crop_to_world(pos);
+
+        let pos = vector!(pos.x, pos.y);
 
         // update
-        *pos = vec2(*x, *y);
+        rigid_body.set_translation(pos, true);
 
         Some(())
     }

@@ -1,71 +1,71 @@
+use std::cell::RefCell;
+
 use macroquad::prelude::{get_time, is_key_down, is_mouse_button_down};
 use miniquad::{KeyCode, MouseButton};
 
+use nalgebra::{vector, Complex, ComplexField, Unit};
+use rapier2d::prelude::{ColliderSet, RigidBodySet};
+
+use crate::info::mouse::MouseInfo;
+
 use super::{
-    drawable::Drawable,
     entity::{Entity, EntityHolder},
+    physics::PhysicsLike,
     projectile::projectile::ProjectileLike,
 };
 
 pub struct Player {
-    pub last_fire_time: f64,
+    pub mouse_info: MouseInfo,
+    pub last_fire_time: RefCell<f64>,
 }
 
 pub trait PlayerLike {
-    fn update_input(&mut self) -> Option<()>;
+    fn mouse_info(&self) -> Option<&MouseInfo>;
+    fn mouse_info_mut(&mut self) -> Option<&mut MouseInfo>;
+    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<f32>;
 
-    //fn area_of_map(&self) -> Option<MapArea>;
+    fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()>;
 
-    fn update_fire(&mut self, player: &EntityHolder, drawable: &Drawable) -> Option<Entity>;
+    fn update_fire(
+        &self,
+        player: &EntityHolder,
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
+    ) -> Option<Entity>;
 }
 
 impl PlayerLike for Entity {
-    fn update_input(&mut self) -> Option<()> {
-        self.update_rotation()?;
-        self.update_velocity()?;
+    fn mouse_info(&self) -> Option<&MouseInfo> {
+        Some(&self.player.as_ref()?.mouse_info)
+    }
+
+    fn mouse_info_mut(&mut self) -> Option<&mut MouseInfo> {
+        Some(&mut self.player.as_mut()?.mouse_info)
+    }
+
+    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<f32> {
+        let pos = *self.pos(rigid_body_set)?;
+        let mouse_pos = self.mouse_info()?.pos;
+        let mouse_pos = Complex::new(mouse_pos.x - pos.x, mouse_pos.y - pos.y);
+        let mouse_pos = Unit::from_complex(mouse_pos);
+
+        Some(self.rotation(rigid_body_set)?.angle_to(&mouse_pos))
+    }
+
+    fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
+        self.update_rotation(rigid_body_set)?;
+        self.update_velocity(rigid_body_set)?;
 
         Some(())
     }
 
-    /*
-    fn area_of_map(&self) -> Option<MapArea> {
-        let (w, h) = screen_size();
-
-        let (x, y) = self.pos()?.into();
-        let (x, y) = (x / w, y / h);
-
-        let area = if x < 0.0 {
-            if y >= 0.0 {
-                MapArea::DownLeft {
-                    offset_x: -w,
-                    offset_y: h,
-                }
-            } else {
-                MapArea::UpLeft {
-                    offset_x: -w,
-                    offset_y: -h,
-                }
-            }
-        } else {
-            if y >= 0.0 {
-                MapArea::DownRight {
-                    offset_x: w,
-                    offset_y: h,
-                }
-            } else {
-                MapArea::UpRight {
-                    offset_x: w,
-                    offset_y: -h,
-                }
-            }
-        };
-
-        Some(area)
-    }
-     */
-
-    fn update_fire(&mut self, player: &EntityHolder, drawable: &Drawable) -> Option<Entity> {
-        let ref mut last_fire_time = self.player.as_mut()?.last_fire_time;
+    fn update_fire(
+        &self,
+        player: &EntityHolder,
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
+    ) -> Option<Entity> {
+        let mut last_fire_time = self.player.as_ref()?.last_fire_time.borrow_mut();
 
         if is_mouse_button_down(MouseButton::Right) {
             let current_time = get_time();
@@ -73,7 +73,13 @@ impl PlayerLike for Entity {
             if (current_time - *last_fire_time) > 0.2 {
                 *last_fire_time = current_time;
 
-                return Some(Entity::spawn_projectile(*player, self, 1.0, drawable)?);
+                return Some(Entity::spawn_projectile(
+                    *player,
+                    self,
+                    1.0,
+                    rigid_body_set,
+                    collider_set,
+                )?);
             }
         }
 
@@ -82,28 +88,41 @@ impl PlayerLike for Entity {
 }
 
 impl Entity {
-    fn update_velocity(&mut self) -> Option<()> {
-        let ref mut velocity = self.physics.as_mut()?.velocity;
+    fn update_velocity<'a>(&self, rigid_body_set: &'a mut RigidBodySet) -> Option<()> {
+        let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
+        let mut velocity = *rigid_body.linvel();
 
         if is_key_down(KeyCode::S) {
-            *velocity *= 0.97;
+            velocity = velocity.scale(0.97);
         }
         if is_key_down(KeyCode::W) {
-            *velocity += 0.15;
+            let d_v = rigid_body.rotation().scale(5.0);
+            let d_v = vector!(d_v.re, d_v.im);
+
+            velocity += d_v;
         }
+        rigid_body.set_linvel(velocity, true);
 
         Some(())
     }
 
-    fn update_rotation(&mut self) -> Option<()> {
-        let ref mut rotation = self.physics.as_mut()?.rotation;
+    fn update_rotation(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
+        let angle_to_mouse = self.angle_to_mouse(rigid_body_set)?;
 
+        let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
+        let mut rotation = rigid_body.rotation().angle();
+
+        rotation += angle_to_mouse / 20.0;
+
+        /*
         if is_key_down(KeyCode::D) {
-            *rotation += 0.025;
+            rotation += 0.025;
         }
         if is_key_down(KeyCode::A) {
-            *rotation -= 0.025;
+            rotation -= 0.025;
         }
+        */
+        rigid_body.set_rotation(rotation, true);
 
         Some(())
     }

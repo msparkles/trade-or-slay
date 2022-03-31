@@ -1,9 +1,14 @@
 use macroquad::prelude::get_time;
+use nalgebra::vector;
+use rapier2d::prelude::{ColliderSet, RigidBodySet};
 
-use crate::entity::{
-    drawable::Drawable,
-    entity::{Entity, EntityHolder},
-    physics::{Physics, PhysicsLike},
+use crate::{
+    entity::{
+        drawable::Drawable,
+        entity::{Entity, EntityHolder},
+        physics::{Physics, PhysicsLike},
+    },
+    BULLET,
 };
 
 pub struct Projectile {
@@ -16,7 +21,8 @@ pub trait ProjectileLike {
         source: EntityHolder,
         source_entity: &Entity,
         lifetime: f64,
-        drawable: &Drawable,
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
     ) -> Option<Self>
     where
         Self: Sized;
@@ -29,19 +35,27 @@ impl ProjectileLike for Entity {
         source: EntityHolder,
         source_entity: &Entity,
         lifetime: f64,
-        drawable: &Drawable,
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
     ) -> Option<Self> {
-        let pos = source_entity.pos()?;
-        let rotation = source_entity.rotation()?;
-        let velocity = 40.0 + source_entity.velocity()?;
+        let mut rigid_body = BULLET.rigid_body.clone()?;
+        let collider = BULLET.collider.clone()?;
+
+        let original = source_entity.get_rigid_body(rigid_body_set)?;
+        let rotation_v = original.rotation().scale(800.0);
+        let velocity = original.linvel() + vector!(rotation_v.re, rotation_v.im);
+
+        rigid_body.set_position(*original.position(), true);
+        rigid_body.set_linvel(velocity, true);
 
         Some(Self {
             physics: Some(Physics {
-                pos,
-                velocity,
-                rotation,
+                rigid_body: rigid_body_set.insert(rigid_body),
+                collider: collider_set.insert(collider),
             }),
-            drawable: Some(*drawable),
+            drawable: Some(Drawable {
+                texture: BULLET.texture.clone(),
+            }),
             player: None,
             projectile: Some(Projectile {
                 source,

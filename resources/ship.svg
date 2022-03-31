@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="4.8436814"
-     inkscape:cx="42.426407"
-     inkscape:cy="70.504224"
+     inkscape:zoom="9.6873628"
+     inkscape:cx="35.665021"
+     inkscape:cy="23.071294"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -66,5 +66,12 @@
        d="M 0.57709155,0.61049438 29.507768,30.017165 0.48148713,59.390649 58.48626,30.033757 Z"
        id="path1014"
        sodipodi:nodetypes="ccccc" />
+    <rect
+       style="display:inline;fill:none;stroke:none;stroke-width:0.1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="hitbox"
+       width="60"
+       height="60"
+       x="0"
+       y="0" />
   </g>
 </svg>

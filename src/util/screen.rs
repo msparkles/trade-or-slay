@@ -1,4 +1,10 @@
-use macroquad::{camera::Camera2D, prelude::vec2, window::*};
+use macroquad::{
+    camera::Camera2D,
+    prelude::{mouse_position, vec2, Vec2},
+    window::*,
+};
+use nalgebra::{coordinates::XY, point};
+use rapier2d::math::{Point, Real};
 
 pub const TWO: f32 = 2.0;
 pub const THREE: f32 = 3.0;
@@ -30,13 +36,20 @@ pub fn world_center() -> (f32, f32) {
     (0.0, 0.0)
 }
 
-pub fn crop_to_world(x: &mut f32, y: &mut f32) {
+pub fn get_world_mouse_pos(camera: &Camera2D) -> Vec2 {
+    camera.screen_to_world(mouse_position().into())
+}
+
+pub fn crop_to_world(pos: Point<Real>) -> Point<Real> {
     let (w, h) = world_size();
     let (hw, hh) = (w / TWO, h / TWO);
+    let pos: XY<Real> = *pos;
+    let (mut x, mut y) = (pos.x, pos.y);
 
-    *x = (*x - hw).rem_euclid(w) - hw;
+    x = (x - hw).rem_euclid(w) - hw;
+    y = (y - hh).rem_euclid(h) - hh;
 
-    *y = (*y - hh).rem_euclid(h) - hh;
+    point!(x, y)
 }
 
 pub fn make_camera() -> Camera2D {

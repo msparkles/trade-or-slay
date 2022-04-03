@@ -5,7 +5,7 @@ use macroquad::prelude::{Image, Texture2D};
 use nalgebra::point;
 use rapier2d::{
     math::{Isometry, Point, Real},
-    prelude::{Collider, ColliderBuilder, RigidBody, RigidBodyBuilder},
+    prelude::{ActiveEvents, Collider, ColliderBuilder, RigidBody, RigidBodyBuilder},
 };
 use resvg::render;
 use tiny_skia::Pixmap;
@@ -89,7 +89,9 @@ pub fn load_resource(path: &str, opt: &usvg::Options) -> Resource {
         height: pixmap_size.height() as u16,
     });
 
-    if let Some((collider, rigid_body)) = info {
+    if let Some((mut collider, rigid_body)) = info {
+        collider.set_active_events(ActiveEvents::all());
+
         Resource {
             texture,
             collider: Some(collider),

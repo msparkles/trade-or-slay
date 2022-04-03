@@ -14,10 +14,11 @@ use macroquad::prelude::*;
 use miniquad::conf::Conf;
 
 use rapier2d::{
+    crossbeam,
     na::vector,
     prelude::{
-        BroadPhase, CCDSolver, IntegrationParameters, IslandManager, JointSet, NarrowPhase,
-        PhysicsPipeline,
+        BroadPhase, CCDSolver, ChannelEventCollector, IntegrationParameters, IslandManager,
+        JointSet, NarrowPhase, PhysicsPipeline,
     },
 };
 use usvg::Options;
@@ -51,7 +52,7 @@ fn config() -> Conf {
     return conf;
 }
 
-fn draw_info(camera: &Camera2D) {
+fn draw_info(world: &World, camera: &Camera2D) {
     let (ul_x, ul_y) = world_min_coord();
     let (dr_x, dr_y) = world_max_coord();
 
@@ -59,11 +60,14 @@ fn draw_info(camera: &Camera2D) {
     draw_text("UL", ul_x, ul_y, 80.0, GRAY);
     draw_text("DR", dr_x, dr_y, 80.0, GRAY);
 
-    let (fps_x, fps_y) = camera.screen_to_world((20.0, 60.0).into()).into();
+    let (fps_x, fps_y) = camera.screen_to_world(vec2(20.0, 60.0)).into();
+    draw_text(&get_fps().to_string(), fps_x, fps_y, 60.0, GRAY);
+
+    let (entities_x, entities_y) = camera.screen_to_world(vec2(120.0, 60.0)).into();
     draw_text(
-        &macroquad::time::get_fps().to_string(),
-        fps_x,
-        fps_y,
+        &world.entities.len().to_string(),
+        entities_x,
+        entities_y,
         60.0,
         GRAY,
     );
@@ -75,22 +79,23 @@ async fn main() {
     show_mouse(false);
     let mut world = World::default();
 
-    let ship_rigid_handle = world.rigid_body_set.borrow_mut().insert(
+    let ship_rigid_body_handle = world.rigid_body_set.borrow_mut().insert(
         SHIP.rigid_body
             .clone()
             .expect("ship doesn't have rigid body"),
     );
+
     let ship_collider_handle = world.collider_set.borrow_mut().insert_with_parent(
         SHIP.collider.clone().expect("ship doesn't have collider"),
-        ship_rigid_handle,
-        world.rigid_body_set.borrow_mut().borrow_mut(),
+        ship_rigid_body_handle,
+        &mut world.rigid_body_set.borrow_mut(),
     );
 
     // init
-    let player = Entity {
+    world.set_player(Entity {
         physics: Some(Physics {
-            rigid_body: ship_rigid_handle,
-            collider: ship_collider_handle,
+            rigid_body_handle: ship_rigid_body_handle,
+            collider_handle: ship_collider_handle,
         }),
         drawable: Some(Drawable {
             texture: SHIP.texture,
@@ -100,8 +105,7 @@ async fn main() {
             last_fire_time: RefCell::new(0.0),
         }),
         projectile: None,
-    };
-    world.set_player(player);
+    });
 
     /* Create other structures necessary for the simulation. */
     let gravity = vector![0.0_f32, 0.0_f32];
@@ -113,16 +117,14 @@ async fn main() {
     let mut joint_set = JointSet::new();
     let mut ccd_solver = CCDSolver::new();
     let physics_hooks = ();
-    let event_handler = ();
+    let (contact_send, contact_recv) = crossbeam::channel::unbounded();
+    let (intersection_send, intersection_recv) = crossbeam::channel::unbounded();
+    let event_handler = ChannelEventCollector::new(intersection_send, contact_send);
+
+    let mut camera = make_camera();
 
     loop {
         clear_background(BLANK);
-
-        let mut camera = make_camera();
-
-        world.update(&mut camera);
-
-        set_camera(&camera);
 
         physics_pipeline.step(
             &gravity,
@@ -130,15 +132,19 @@ async fn main() {
             &mut island_manager,
             &mut broad_phase,
             &mut narrow_phase,
-            world.rigid_body_set.borrow_mut().borrow_mut(),
-            world.collider_set.borrow_mut().borrow_mut(),
+            &mut world.rigid_body_set.borrow_mut(),
+            &mut world.collider_set.borrow_mut(),
             &mut joint_set,
             &mut ccd_solver,
             &physics_hooks,
             &event_handler,
         );
 
-        draw_info(&camera);
+        world.update(&contact_recv, &intersection_recv, &mut camera);
+
+        set_camera(&camera);
+
+        draw_info(&world, &camera);
 
         next_frame().await
     }

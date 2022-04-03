@@ -7,7 +7,7 @@
    viewBox="0 0 60 60"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20, custom)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04, custom)"
    sodipodi:docname="ship.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="9.6873628"
-     inkscape:cx="35.665021"
-     inkscape:cy="23.071294"
+     inkscape:zoom="13.7"
+     inkscape:cx="28.065694"
+     inkscape:cy="31.058394"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -54,24 +54,22 @@
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="display:none;fill:#a4652c;fill-opacity:1;stroke-width:1.03213;paint-order:stroke markers fill"
+       style="display:none;fill:#a4652c;fill-opacity:1;stroke-width:0.516066;paint-order:stroke markers fill"
        id="rect899"
-       width="60"
-       height="120"
-       x="0"
-       y="0"
+       width="30"
+       height="60.00008"
+       x="-0.0043579815"
+       y="0.00077511481"
        sodipodi:insensitive="true" />
     <path
-       style="fill:#34c09f;fill-opacity:1;stroke:#ffffff;stroke-width:1.36608;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="M 0.57709155,0.61049438 29.507768,30.017165 0.48148713,59.390649 58.48626,30.033757 Z"
+       style="fill:#34c09f;fill-opacity:1;stroke:#ffffff;stroke-width:1.36609;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 0.58147785,0.60894677 29.511724,30.01635 0.48587485,59.390566 58.489785,30.032943 Z"
        id="path1014"
        sodipodi:nodetypes="ccccc" />
-    <rect
-       style="display:inline;fill:none;stroke:none;stroke-width:0.1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+    <path
        id="hitbox"
-       width="60"
-       height="60"
-       x="0"
-       y="0" />
+       style="display:inline;fill:none;stroke:none;stroke-width:0.0866666;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+       d="M 4.4703619,3.7973078 H 56.470362 V 29.825858 55.797308 H 4.4703619 Z"
+       sodipodi:nodetypes="cccccc" />
   </g>
 </svg>

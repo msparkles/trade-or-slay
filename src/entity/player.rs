@@ -96,7 +96,7 @@ impl Entity {
             velocity = velocity.scale(0.97);
         }
         if is_key_down(KeyCode::W) {
-            let d_v = rigid_body.rotation().scale(5.0);
+            let d_v = rigid_body.rotation().scale(10.0);
             let d_v = vector!(d_v.re, d_v.im);
 
             velocity += d_v;
@@ -110,9 +110,9 @@ impl Entity {
         let angle_to_mouse = self.angle_to_mouse(rigid_body_set)?;
 
         let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
-        let mut rotation = rigid_body.rotation().angle();
+        let mut angvel: f32 = 0.0;
 
-        rotation += angle_to_mouse / 20.0;
+        angvel += angle_to_mouse * 3.0;
 
         /*
         if is_key_down(KeyCode::D) {
@@ -122,7 +122,7 @@ impl Entity {
             rotation -= 0.025;
         }
         */
-        rigid_body.set_rotation(rotation, true);
+        rigid_body.set_angvel(angvel, true);
 
         Some(())
     }

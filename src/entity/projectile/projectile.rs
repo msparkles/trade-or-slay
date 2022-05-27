@@ -1,5 +1,5 @@
 use macroquad::prelude::get_time;
-use nalgebra::{point, vector, Translation2, Vector2};
+use nalgebra::vector;
 use rapier2d::{
     math::Isometry,
     prelude::{ColliderSet, RigidBodySet},

@@ -1,6 +1,7 @@
 use nalgebra::{vector, Complex, Unit};
 use rapier2d::{
-    math::{Point, Real, Rotation, Vector},
+    math::{Isometry, Point, Real, Rotation, Vector},
+    parry::utils::IsometryOpt,
     prelude::{Collider, ColliderHandle, ColliderSet, RigidBody, RigidBodyHandle, RigidBodySet},
 };
 
@@ -19,8 +20,8 @@ impl Physics {
         rigid_body_set: &mut RigidBodySet,
         collider_set: &mut ColliderSet,
     ) -> Option<Physics> {
-        let rigid_body = resource.rigid_body.clone()?;
-        let collider = resource.collider.clone()?;
+        let rigid_body = resource.info.rigid_body.clone()?;
+        let collider = resource.info.collider.clone()?;
 
         let rigid_body_handle = rigid_body_set.insert(rigid_body);
         let collider_handle =
@@ -43,6 +44,7 @@ pub trait PhysicsLike {
     fn get_collider<'a>(&self, collider_set: &'a ColliderSet) -> Option<&'a Collider>;
     fn get_collider_mut<'a>(&self, collider_set: &'a mut ColliderSet) -> Option<&'a mut Collider>;
 
+    fn transform(&self, rigid_body_set: &RigidBodySet) -> Option<Isometry<Real>>;
     fn pos(&self, rigid_body_set: &RigidBodySet) -> Option<Point<Real>>;
     fn velocity(&self, rigid_body_set: &RigidBodySet) -> Option<Vector<Real>>;
     fn rotation(&self, rigid_body_set: &RigidBodySet) -> Option<Rotation<Real>>;
@@ -69,10 +71,13 @@ impl PhysicsLike for Entity {
         collider_set.get_mut(self.physics.as_ref()?.collider_handle)
     }
 
+    fn transform(&self, rigid_body_set: &RigidBodySet) -> Option<Isometry<Real>> {
+        Some(*self.get_rigid_body(rigid_body_set)?.position())
+    }
+
     fn pos(&self, rigid_body_set: &RigidBodySet) -> Option<Point<Real>> {
         Some(
-            self.get_rigid_body(rigid_body_set)?
-                .position()
+            self.transform(rigid_body_set)
                 .transform_point(&Point::origin()),
         )
     }
@@ -81,20 +86,11 @@ impl PhysicsLike for Entity {
         Some(*self.get_rigid_body(rigid_body_set)?.linvel())
     }
 
-    fn rotation(&self, rigid_body_set: &RigidBodySet) -> Option<Unit<Complex<f32>>> {
+    fn rotation(&self, rigid_body_set: &RigidBodySet) -> Option<Unit<Complex<Real>>> {
         Some(*self.get_rigid_body(rigid_body_set)?.rotation())
     }
 
     fn update_entity_position(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
-        /*
-        let d_pos = self.rotation_to_unit_vector()? * self.velocity()?;
-
-        let ref mut pos = self.physics.as_mut()?.pos;
-
-        // velocity
-        *pos += d_pos;
-        */
-
         let pos = self.pos(rigid_body_set)?;
 
         let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;

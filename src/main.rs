@@ -6,7 +6,7 @@ mod world;
 #[macro_use]
 extern crate lazy_static;
 
-use std::{borrow::BorrowMut, cell::RefCell};
+use std::cell::RefCell;
 
 use entity::{drawable::Drawable, entity::Entity, physics::Physics, player::Player};
 use info::mouse::MouseInfo;
@@ -21,7 +21,6 @@ use rapier2d::{
         JointSet, NarrowPhase, PhysicsPipeline,
     },
 };
-use usvg::Options;
 use util::{
     resource::{self, Resource},
     screen::{make_camera, world_max_coord, world_min_coord},
@@ -33,13 +32,10 @@ const RESOURCE_BULLET: &str = "resources/bullet.svg";
 const RESOURCE_CURSOR: &str = "resources/cursor.svg";
 
 lazy_static! {
-    static ref OPT: Options = usvg::Options::default();
-    static ref SHIP: Resource = resource::load_resource(RESOURCE_SHIP, &OPT);
-    static ref BULLET: Resource = resource::load_resource(RESOURCE_BULLET, &OPT);
-    static ref CURSOR: Resource = resource::load_resource(RESOURCE_CURSOR, &OPT);
+    static ref SHIP: Resource = resource::load_resource(RESOURCE_SHIP);
+    static ref BULLET: Resource = resource::load_resource(RESOURCE_BULLET);
+    static ref CURSOR: Resource = resource::load_resource(RESOURCE_CURSOR);
 }
-
-const DEBUG: bool = true;
 
 fn config() -> Conf {
     let mut conf = Conf::default();
@@ -56,6 +52,7 @@ fn draw_info(world: &World, camera: &Camera2D) {
     let (ul_x, ul_y) = world_min_coord();
     let (dr_x, dr_y) = world_max_coord();
 
+    draw_text("+", -20.0, 20.0, 80.0, GRAY);
     draw_text("O", 0.0, 0.0, 80.0, GRAY);
     draw_text("UL", ul_x, ul_y, 80.0, GRAY);
     draw_text("DR", dr_x, dr_y, 80.0, GRAY);
@@ -75,31 +72,27 @@ fn draw_info(world: &World, camera: &Camera2D) {
 
 #[macroquad::main(config)]
 async fn main() {
+    simple_logger::init_with_env().unwrap();
+
+    let _ = *SHIP;
+    let _ = *BULLET;
+    let _ = *CURSOR;
+
     // pre-init
     show_mouse(false);
     let mut world = World::default();
 
-    let ship_rigid_body_handle = world.rigid_body_set.borrow_mut().insert(
-        SHIP.rigid_body
-            .clone()
-            .expect("ship doesn't have rigid body"),
-    );
-
-    let ship_collider_handle = world.collider_set.borrow_mut().insert_with_parent(
-        SHIP.collider.clone().expect("ship doesn't have collider"),
-        ship_rigid_body_handle,
+    let player_physics = Physics::from_resource(
+        &SHIP,
         &mut world.rigid_body_set.borrow_mut(),
+        &mut world.collider_set.borrow_mut(),
     );
 
     // init
     world.set_player(Entity {
-        physics: Some(Physics {
-            rigid_body_handle: ship_rigid_body_handle,
-            collider_handle: ship_collider_handle,
-        }),
-        drawable: Some(Drawable {
-            texture: SHIP.texture,
-        }),
+        resource: &SHIP,
+        physics: player_physics,
+        drawable: Drawable::from_resource(&SHIP),
         player: Some(Player {
             mouse_info: MouseInfo::default(),
             last_fire_time: RefCell::new(0.0),

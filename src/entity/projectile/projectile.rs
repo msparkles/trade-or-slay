@@ -1,6 +1,9 @@
 use macroquad::prelude::get_time;
-use nalgebra::vector;
-use rapier2d::prelude::{ColliderSet, RigidBody, RigidBodySet};
+use nalgebra::{point, vector, Translation2, Vector2};
+use rapier2d::{
+    math::Isometry,
+    prelude::{ColliderSet, RigidBodySet},
+};
 
 use crate::{
     entity::{
@@ -31,17 +34,23 @@ pub trait ProjectileLike {
 }
 
 fn set_projectile_physics(
+    source_entity: &Entity,
     physics: &Physics,
-    source_rigid_body: &RigidBody,
     rigid_body_set: &mut RigidBodySet,
 ) -> Option<()> {
+    let rotation = source_entity.rotation(rigid_body_set)?;
+
+    let rotation_v = rotation.scale(800.0);
+    let velocity = source_entity.velocity(rigid_body_set)? + vector!(rotation_v.re, rotation_v.im);
+
+    let position = source_entity.transform(rigid_body_set)?;
+    let fire_point = source_entity.resource.info.fire_points()?.to_points()[0];
+    let fire_point = position.transform_point(&fire_point);
+
     let rigid_body = rigid_body_set.get_mut(physics.rigid_body_handle)?;
 
-    let rotation_v = source_rigid_body.rotation().scale(800.0);
-    let velocity = source_rigid_body.linvel() + vector!(rotation_v.re, rotation_v.im);
-
-    rigid_body.set_position(*source_rigid_body.position(), true);
-    rigid_body.set_linvel(velocity, true);
+    rigid_body.set_position(Isometry::new(fire_point.coords, rotation.angle()), false);
+    rigid_body.set_linvel(velocity, false);
 
     Some(())
 }
@@ -55,15 +64,13 @@ impl ProjectileLike for Entity {
         collider_set: &mut ColliderSet,
     ) -> Option<Self> {
         let physics = Physics::from_resource(&BULLET, rigid_body_set, collider_set)?;
-        let source_rigid_body = source_entity.get_rigid_body(rigid_body_set)?.clone();
 
-        set_projectile_physics(&physics, &source_rigid_body, rigid_body_set);
+        set_projectile_physics(&source_entity, &physics, rigid_body_set);
 
         Some(Self {
+            resource: &BULLET,
             physics: Some(physics),
-            drawable: Some(Drawable {
-                texture: BULLET.texture.clone(),
-            }),
+            drawable: Drawable::from_resource(&BULLET),
             player: None,
             projectile: Some(Projectile {
                 source,

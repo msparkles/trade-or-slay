@@ -1,11 +1,12 @@
 use macroquad::prelude::{vec2, Vec2, WHITE};
+use rapier2d::math::Real;
 
 use super::{
     draw,
     screen::{world_size, TWO},
 };
 
-const ONE_HALF: f32 = 1.0 / TWO;
+const ONE_HALF: Real = 1.0 / TWO;
 
 pub fn lines() -> Vec<(Vec2, Vec2)> {
     let lines_local = vec![

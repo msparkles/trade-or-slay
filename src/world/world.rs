@@ -49,6 +49,10 @@ impl World {
             .collect()
     }
 
+    pub fn get_player(&self) -> Option<&Entity> {
+        self.get_entity(&self.player?)
+    }
+
     pub fn set_player(&mut self, player: Entity) {
         self.player = Some(self.add_entity(player));
     }
@@ -98,11 +102,14 @@ impl World {
         let mut rigid_body_set = self.rigid_body_set.borrow_mut();
 
         let p = random_place_on_map();
+
         let physics = Physics::from_resource(&SHIP, &mut rigid_body_set, &mut collider_set)?;
+
         let rigid_body = rigid_body_set.get_mut(physics.rigid_body_handle)?;
         rigid_body.set_position(Isometry::translation(p.0, p.1), false);
 
         Some(vec![Entity {
+            resource: &SHIP,
             physics: Some(physics),
             drawable: Drawable::from_resource(&SHIP),
             player: None,
@@ -141,26 +148,26 @@ impl World {
         let mut rigid_body_set = self.rigid_body_set.borrow_mut();
         let collider_set = self.collider_set.borrow_mut();
 
-        let mut to_remove: Vec<EntityHolder> = vec![];
-
         while let Ok(intersection_event) = intersection_recv.try_recv() {
             // Handle the intersection event.
-            println!("Received intersection event: {:?}", intersection_event);
+            log::debug!("Received intersection event: {:?}", intersection_event);
         }
 
         while let Ok(contact_event) = contact_recv.try_recv() {
             // Handle the contact event.
-            println!("Received contact event: {:?}", contact_event);
+            log::debug!("Received contact event: {:?}", contact_event);
         }
+
+        let mut to_remove: Vec<EntityHolder> = vec![];
 
         for (index, entity) in self.entities.iter_mut() {
             entity.update_entity_position(&mut rigid_body_set);
 
             if entity.update_projectile(current_time).unwrap_or(false) {
                 to_remove.push(index);
+            } else {
+                entity.draw(rigid_body_set.borrow(), collider_set.borrow());
             }
-
-            entity.draw(rigid_body_set.borrow(), collider_set.borrow());
         }
 
         for index in to_remove {

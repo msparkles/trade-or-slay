@@ -1,10 +1,13 @@
 use std::cell::RefCell;
 
+use macroquad::miniquad::{KeyCode, MouseButton};
 use macroquad::prelude::{get_time, is_key_down, is_mouse_button_down};
-use miniquad::{KeyCode, MouseButton};
 
 use nalgebra::{vector, Complex, ComplexField, Unit};
-use rapier2d::prelude::{ColliderSet, RigidBodySet};
+use rapier2d::{
+    math::Real,
+    prelude::{ColliderSet, RigidBodySet},
+};
 
 use crate::info::mouse::MouseInfo;
 
@@ -22,7 +25,7 @@ pub struct Player {
 pub trait PlayerLike {
     fn mouse_info(&self) -> Option<&MouseInfo>;
     fn mouse_info_mut(&mut self) -> Option<&mut MouseInfo>;
-    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<f32>;
+    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<Real>;
 
     fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()>;
 
@@ -43,7 +46,7 @@ impl PlayerLike for Entity {
         Some(&mut self.player.as_mut()?.mouse_info)
     }
 
-    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<f32> {
+    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<Real> {
         let pos = *self.pos(rigid_body_set)?;
         let mouse_pos = self.mouse_info()?.pos;
         let mouse_pos = Complex::new(mouse_pos.x - pos.x, mouse_pos.y - pos.y);
@@ -53,8 +56,8 @@ impl PlayerLike for Entity {
     }
 
     fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
-        self.update_rotation(rigid_body_set)?;
-        self.update_velocity(rigid_body_set)?;
+        self.update_rotation(rigid_body_set);
+        self.update_velocity(rigid_body_set);
 
         Some(())
     }
@@ -88,7 +91,7 @@ impl PlayerLike for Entity {
 }
 
 impl Entity {
-    fn update_velocity<'a>(&self, rigid_body_set: &'a mut RigidBodySet) -> Option<()> {
+    fn update_velocity(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
         let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
         let mut velocity = *rigid_body.linvel();
 
@@ -110,9 +113,8 @@ impl Entity {
         let angle_to_mouse = self.angle_to_mouse(rigid_body_set)?;
 
         let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
-        let mut angvel: f32 = 0.0;
 
-        angvel += angle_to_mouse * 3.0;
+        let angvel = angle_to_mouse * 3.0;
 
         /*
         if is_key_down(KeyCode::D) {

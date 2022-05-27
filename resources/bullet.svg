@@ -2,12 +2,12 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="60"
-   height="60"
-   viewBox="0 0 60 60"
+   width="45"
+   height="10"
+   viewBox="0 0 45 10"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20, custom)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04, custom)"
    sodipodi:docname="bullet.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="19.374726"
-     inkscape:cx="32.439168"
-     inkscape:cy="26.968123"
+     inkscape:zoom="38.749452"
+     inkscape:cx="5.2000736"
+     inkscape:cy="5.5097554"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -46,7 +46,8 @@
      inkscape:snap-bbox-midpoints="true"
      inkscape:snap-bbox-edge-midpoints="true"
      inkscape:snap-global="true"
-     width="60px" />
+     width="45px"
+     showguides="false" />
   <defs
      id="defs2" />
   <g
@@ -62,16 +63,37 @@
        y="0"
        sodipodi:insensitive="true" />
     <path
-       style="fill:#8dc0b4;fill-opacity:1;stroke:#ffc3c3;stroke-width:0.579935;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 8.4958627,24.945306 c 0,0 4.7471813,1.531549 4.7359573,4.892269 -0.01125,3.364265 -4.7009653,5.223759 -4.7009653,5.223759 0,0 42.7597513,0.07657 42.7723443,-5.219703 0.01249,-5.291777 -42.8073363,-4.896325 -42.8073363,-4.896325 z"
+       style="fill:#8dc0b4;fill-opacity:1;stroke:#ffc3c3;stroke-width:0.571463;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 0.07913927,0.29197485 c 0,0 4.94891093,1.42651105 4.93720993,4.55674105 -0.011729,3.133533 -4.90073096,4.865497 -4.90073096,4.865497 0,0 44.57681076,0.07132 44.58993876,-4.861719 C 44.718577,-0.07635515 0.07913927,0.29197485 0.07913927,0.29197485 Z"
        id="path1014"
        sodipodi:nodetypes="cscsc" />
     <rect
-       style="display:inline;fill:none;fill-opacity:1;stroke:#ff0000;stroke-width:0.1;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0"
-       id="hitbox"
-       width="43.186337"
-       height="10.702727"
-       x="8.4068317"
-       y="24.648636" />
+       style="display:inline;fill:#ff0000;fill-opacity:0.248797;stroke:none;stroke-width:0.0986701;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0"
+       id="collider"
+       width="45"
+       height="10"
+       x="0"
+       y="2.3987791e-06" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.66667px;line-height:1;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+       x="0"
+       y="1.9040024"
+       id="attributes"><tspan
+         sodipodi:role="line"
+         x="0"
+         y="1.9040024"
+         id="tspan21720"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">{</tspan><tspan
+         sodipodi:role="line"
+         x="0"
+         y="4.5706725"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+         id="tspan28853">    &quot;collision_group&quot;: &quot;bullets&quot;</tspan><tspan
+         sodipodi:role="line"
+         x="0"
+         y="7.2373428"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+         id="tspan28855">}</tspan></text>
   </g>
 </svg>

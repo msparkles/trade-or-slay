@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="13.7"
-     inkscape:cx="28.065694"
-     inkscape:cy="31.058394"
+     inkscape:zoom="9.6873629"
+     inkscape:cx="21.626112"
+     inkscape:cy="32.877885"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -58,18 +58,43 @@
        id="rect899"
        width="30"
        height="60.00008"
-       x="-0.0043579815"
-       y="0.00077511481"
+       x="0"
+       y="0"
        sodipodi:insensitive="true" />
     <path
        style="fill:#34c09f;fill-opacity:1;stroke:#ffffff;stroke-width:1.36609;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="M 0.58147785,0.60894677 29.511724,30.01635 0.48587485,59.390566 58.489785,30.032943 Z"
-       id="path1014"
-       sodipodi:nodetypes="ccccc" />
+       id="path1014" />
     <path
-       id="hitbox"
-       style="display:inline;fill:none;stroke:none;stroke-width:0.0866666;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
-       d="M 4.4703619,3.7973078 H 56.470362 V 29.825858 55.797308 H 4.4703619 Z"
-       sodipodi:nodetypes="cccccc" />
+       id="collider"
+       style="display:inline;fill:#ff00f8;fill-opacity:0.5;stroke:none;stroke-width:0;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 1.7116873e-5,1.7941401e-6 59.999983,30.032942 1.7116873e-5,59.999998 29.48783,29.999756 Z"
+       sodipodi:nodetypes="ccccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.66667px;line-height:1.25;font-family:'Twitter Color Emoji';-inkscape-font-specification:'Twitter Color Emoji, Normal'"
+       x="0"
+       y="1.9040024"
+       id="attributes"><tspan
+         sodipodi:role="line"
+         id="tspan30496"
+         x="0"
+         y="1.9040024"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif">{</tspan><tspan
+         sodipodi:role="line"
+         x="0"
+         y="5.23734"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+         id="tspan1815">    &quot;collision_group&quot;: &quot;ships&quot;,</tspan><tspan
+         sodipodi:role="line"
+         x="0"
+         y="8.5706778"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+         id="tspan1821">    &quot;fire_points&quot;: [30, 0]</tspan><tspan
+         sodipodi:role="line"
+         x="0"
+         y="11.904016"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.66667px;font-family:sans-serif;-inkscape-font-specification:sans-serif"
+         id="tspan15100">}</tspan></text>
   </g>
 </svg>

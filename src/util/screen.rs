@@ -3,7 +3,7 @@ use macroquad::{
     prelude::{mouse_position, vec2, Vec2},
     window::*,
 };
-use nalgebra::{coordinates::XY, point};
+use nalgebra::point;
 use rapier2d::math::{Point, Real};
 
 pub const TWO: f32 = 2.0;
@@ -42,14 +42,20 @@ pub fn get_world_mouse_pos(camera: &Camera2D) -> Vec2 {
 
 pub fn crop_to_world(pos: Point<Real>) -> Point<Real> {
     let (w, h) = world_size();
-    let (hw, hh) = (w / TWO, h / TWO);
-    let pos: XY<Real> = *pos;
-    let (mut x, mut y) = (pos.x, pos.y);
 
-    x = (x - hw).rem_euclid(w) - hw;
-    y = (y - hh).rem_euclid(h) - hh;
+    let list = [w, h];
+    let half_list = [w / TWO, h / TWO];
 
-    point!(x, y)
+    let new = pos
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            let half = half_list[i];
+            (v - half).rem_euclid(list[i]) - half
+        })
+        .collect::<Vec<_>>();
+
+    point!(new[0], new[1])
 }
 
 pub fn make_camera() -> Camera2D {

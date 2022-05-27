@@ -6,13 +6,16 @@ version = "0.1.0"
 
 [dependencies]
 generational-arena = "0.2.8"
-macroquad = "0.3"
-miniquad = "0.3.0-alpha.33"
-nalgebra = "*"
+macroquad = "0.3.16"
 rapier2d = {version = "*", features = ["simd-stable"]}
+nalgebra = "*"
 
-resvg = "0.22.0"
-tiny-skia = "0.6.3"
-usvg = "0.22.0"
+lyon = "0.17.10"
+roxmltree = "*"
+usvg = "*"
+
+json = "0.12.4"
+log = "0.4.17"
+simple_logger = "2.1.0"
 
 lazy_static = "1.4.0"

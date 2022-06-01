@@ -5,33 +5,14 @@ use rapier2d::{
     prelude::{Collider, ColliderHandle, ColliderSet, RigidBody, RigidBodyHandle, RigidBodySet},
 };
 
-use crate::util::{resource::Resource, screen::crop_to_world};
+use crate::util::screen::crop_to_world;
 
 use super::entity::Entity;
 
+#[derive(Debug, Clone, Copy)]
 pub struct Physics {
     pub rigid_body_handle: RigidBodyHandle,
     pub collider_handle: ColliderHandle,
-}
-
-impl Physics {
-    pub fn from_resource(
-        resource: &Resource,
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-    ) -> Option<Physics> {
-        let rigid_body = resource.info.rigid_body.clone()?;
-        let collider = resource.info.collider.clone()?;
-
-        let rigid_body_handle = rigid_body_set.insert(rigid_body);
-        let collider_handle =
-            collider_set.insert_with_parent(collider, rigid_body_handle, rigid_body_set);
-
-        Some(Physics {
-            rigid_body_handle,
-            collider_handle,
-        })
-    }
 }
 
 pub trait PhysicsLike {

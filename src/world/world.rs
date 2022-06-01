@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell};
+use std::cell::RefCell;
 
 use generational_arena::{Arena, Index};
 use macroquad::{
@@ -8,13 +8,15 @@ use macroquad::{
 use rapier2d::{
     crossbeam::channel::Receiver,
     math::Isometry,
-    prelude::{ColliderSet, ContactEvent, IntersectionEvent, RigidBodySet},
+    prelude::{
+        ColliderSet, ContactEvent, IntersectionEvent, IslandManager, JointSet, RigidBodySet,
+    },
 };
 
 use crate::{
     entity::{
         drawable::{Drawable, DrawableLike},
-        entity::{Entity, EntityHolder},
+        entity::{Entity, EntityBuilder, EntityHolder},
         physics::{Physics, PhysicsLike},
         player::PlayerLike,
         projectile::projectile::ProjectileLike,
@@ -22,14 +24,51 @@ use crate::{
     util::{bg::draw_bg, math::random_place_on_map},
     SHIP,
 };
+
+use super::world_mutator::{PostInitFn, WorldMutator};
 pub struct World {
     pub entities: Arena<Entity>,
     pub player: Option<EntityHolder>,
     pub rigid_body_set: RefCell<RigidBodySet>,
     pub collider_set: RefCell<ColliderSet>,
+    pub island_manager: RefCell<IslandManager>,
+    pub joint_set: RefCell<JointSet>,
+}
+
+fn add_entity_property(
+    entity: &mut Entity,
+    entity_holder: EntityHolder,
+    rigid_body_set: &mut RigidBodySet,
+    collider_set: &mut ColliderSet,
+) -> Option<()> {
+    let rigid_body = entity.resource.info.rigid_body.as_ref()?.clone();
+    let collider = entity.resource.info.collider.as_ref()?.clone();
+
+    let rigid_body_handle = rigid_body_set.insert(rigid_body);
+    let collider_handle =
+        collider_set.insert_with_parent(collider, rigid_body_handle, rigid_body_set);
+
+    entity.physics = Some(Physics {
+        rigid_body_handle,
+        collider_handle,
+    });
+
+    entity.entity_holder = Some(entity_holder);
+
+    Some(())
 }
 
 impl World {
+    fn handle_mutator(&mut self, world_mutator: WorldMutator) -> Option<EntityHolder> {
+        match world_mutator {
+            WorldMutator::Remove(entity_holder) => {
+                self.remove_entity(entity_holder);
+                None
+            }
+            WorldMutator::Add(entity, post_init) => self.add_entity(entity, post_init),
+        }
+    }
+
     pub fn get_entity_mut(&mut self, holder: &EntityHolder) -> Option<&mut Entity> {
         self.entities.get_mut(*holder)
     }
@@ -38,23 +77,67 @@ impl World {
         self.entities.get(*holder)
     }
 
-    pub fn add_entity(&mut self, entity: Entity) -> EntityHolder {
-        self.entities.insert(entity)
+    pub fn remove_entity(&mut self, entity_holder: EntityHolder) -> Entity {
+        let entity = self
+            .entities
+            .remove(entity_holder)
+            .expect("entity was never in the arena");
+
+        if let Some(handle) = entity.physics.and_then(|v| Some(v.rigid_body_handle)) {
+            let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
+            let collider_set = &mut *self.collider_set.borrow_mut();
+            let island_manager = &mut *self.island_manager.borrow_mut();
+            let joint_set = &mut *self.joint_set.borrow_mut();
+
+            rigid_body_set.remove(handle, island_manager, collider_set, joint_set);
+        }
+
+        return entity;
     }
 
-    pub fn add_entities(&mut self, entities: Vec<Entity>) -> Vec<EntityHolder> {
-        entities
-            .into_iter()
-            .map(|e| self.entities.insert(e))
-            .collect()
+    pub fn add_entity(&mut self, entity: Entity, post_init: PostInitFn) -> Option<EntityHolder> {
+        let entity_holder = self.entities.insert(entity);
+
+        let entity = self
+            .entities
+            .get_mut(entity_holder)
+            .expect("somehow entity isn't present right after insertion");
+
+        {
+            let result = {
+                let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
+                let collider_set = &mut *self.collider_set.borrow_mut();
+
+                add_entity_property(entity, entity_holder, rigid_body_set, collider_set)
+            };
+
+            if let None = result {
+                self.remove_entity(entity_holder);
+
+                return None;
+            }
+        }
+
+        {
+            let result = {
+                let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
+
+                post_init(entity, rigid_body_set)
+            };
+
+            result.and_then(|v| {
+                self.handle_mutator(v);
+                Some(())
+            });
+        }
+
+        Some(entity_holder)
     }
 
-    pub fn get_player(&self) -> Option<&Entity> {
-        self.get_entity(&self.player?)
-    }
+    pub fn set_player(&mut self, world_mutator: WorldMutator) -> Option<()> {
+        self.player = self.handle_mutator(world_mutator);
 
-    pub fn set_player(&mut self, player: Entity) {
-        self.player = Some(self.add_entity(player));
+        Some(())
     }
 
     fn mouse(&mut self, player: &Index, camera: &mut Camera2D) -> Option<()> {
@@ -70,51 +153,45 @@ impl World {
     fn camera(&self, player: &Index, camera: &mut Camera2D) -> Option<()> {
         let player_entity = self.get_entity(&player)?;
 
-        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
+        let rigid_body_set = &mut self.rigid_body_set.borrow();
 
-        let pos = *player_entity.pos(&mut rigid_body_set)?;
+        let pos = *player_entity.pos(rigid_body_set)?;
         camera.target = vec2(pos.x, pos.y);
 
         Some(())
     }
 
-    fn input(&self, player: &Index) -> Option<()> {
+    fn input(&mut self, player: &Index) -> Option<()> {
         let player_entity = self.get_entity(&player)?;
+        let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
 
-        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
+        let rigid_body = player_entity.get_rigid_body_mut(rigid_body_set)?;
 
-        player_entity.update_input(&mut rigid_body_set)?;
+        player_entity.update_input(rigid_body);
 
         Some(())
     }
 
-    fn fire(&self, player: &Index) -> Option<Entity> {
-        let player_entity = self.get_entity(&player)?;
+    fn fire(&mut self, player: &Index) -> Option<WorldMutator> {
+        let player_entity = self.get_entity_mut(player)?;
 
-        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
-        let mut collider_set = self.collider_set.borrow_mut();
-
-        player_entity.update_fire(&player, &mut rigid_body_set, &mut collider_set)
+        player_entity.update_fire(&player)
     }
 
-    fn spawn_enemy(&mut self) -> Option<Vec<Entity>> {
-        let mut collider_set = self.collider_set.borrow_mut();
-        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
-
+    fn spawn_enemy(&mut self) -> Option<Vec<WorldMutator>> {
         let p = random_place_on_map();
 
-        let physics = Physics::from_resource(&SHIP, &mut rigid_body_set, &mut collider_set)?;
+        let drawable = Drawable::from_resource(&SHIP)?;
 
-        let rigid_body = rigid_body_set.get_mut(physics.rigid_body_handle)?;
-        rigid_body.set_position(Isometry::translation(p.0, p.1), false);
+        Some(vec![EntityBuilder::new(&SHIP)
+            .drawable(drawable)
+            .build_mutator(Box::new(move |entity, rigid_body_set| {
+                entity
+                    .get_rigid_body_mut(rigid_body_set)?
+                    .set_position(Isometry::translation(p.0, p.1), false);
 
-        Some(vec![Entity {
-            resource: &SHIP,
-            physics: Some(physics),
-            drawable: Drawable::from_resource(&SHIP),
-            player: None,
-            projectile: None,
-        }])
+                None
+            }))])
     }
 
     pub fn update(
@@ -133,46 +210,55 @@ impl World {
         self.mouse(&player, camera);
         self.input(&player);
 
-        let projectile = self.fire(&player);
-
-        if let Some(projectile) = projectile {
-            self.add_entity(projectile);
-        }
+        self.fire(&player).and_then(|v| {
+            self.handle_mutator(v);
+            Some(())
+        });
 
         if current_time % 1.0 <= 0.1 {
-            if let Some(enemies) = self.spawn_enemy() {
-                self.add_entities(enemies);
-            }
-        }
-
-        let mut rigid_body_set = self.rigid_body_set.borrow_mut();
-        let collider_set = self.collider_set.borrow_mut();
-
-        while let Ok(intersection_event) = intersection_recv.try_recv() {
-            // Handle the intersection event.
-            log::debug!("Received intersection event: {:?}", intersection_event);
-        }
-
-        while let Ok(contact_event) = contact_recv.try_recv() {
-            // Handle the contact event.
-            log::debug!("Received contact event: {:?}", contact_event);
+            self.spawn_enemy().and_then(|v| {
+                v.into_iter().for_each(|e| {
+                    self.handle_mutator(e);
+                });
+                Some(())
+            });
         }
 
         let mut to_remove: Vec<EntityHolder> = vec![];
+        {
+            let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
 
-        for (index, entity) in self.entities.iter_mut() {
-            entity.update_entity_position(&mut rigid_body_set);
+            for (_, entity) in self.entities.iter_mut() {
+                entity.update_entity_position(rigid_body_set);
 
-            if entity.update_projectile(current_time).unwrap_or(false) {
-                to_remove.push(index);
-            } else {
-                entity.draw(rigid_body_set.borrow(), collider_set.borrow());
+                if let Some(WorldMutator::Remove(entity_holder)) =
+                    entity.update_projectile(current_time)
+                {
+                    to_remove.push(entity_holder);
+                }
             }
         }
 
-        for index in to_remove {
-            self.entities.remove(index);
+        while let Ok(intersection_event) = intersection_recv.try_recv() {
+            log::debug!("Received intersection event: {:?}", intersection_event);
         }
+
+        /*
+        while let Ok(contact_event) = contact_recv.try_recv() {
+            log::debug!("Received contact event: {:?}", contact_event);
+        }
+        */
+
+        to_remove.into_iter().for_each(|index| {
+            self.remove_entity(index);
+        });
+
+        let rigid_body_set = &mut *self.rigid_body_set.borrow_mut();
+        let collider_set = &*self.collider_set.borrow();
+
+        self.entities.iter_mut().for_each(|(_, entity)| {
+            entity.draw(&rigid_body_set, &collider_set);
+        });
 
         Some(())
     }
@@ -185,6 +271,8 @@ impl Default for World {
             player: None,
             rigid_body_set: RefCell::new(RigidBodySet::new()),
             collider_set: RefCell::new(ColliderSet::new()),
+            island_manager: RefCell::new(IslandManager::new()),
+            joint_set: RefCell::new(JointSet::new()),
         }
     }
 }

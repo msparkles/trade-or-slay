@@ -1,4 +1,5 @@
 use macroquad::prelude::{vec2, Vec2, WHITE};
+use once_cell::sync::Lazy;
 use rapier2d::math::Real;
 
 use super::{
@@ -35,6 +36,8 @@ pub fn lines() -> Vec<(Vec2, Vec2)> {
         .collect()
 }
 
+static BG_LINES: Lazy<Vec<(Vec2, Vec2)>> = Lazy::new(lines);
+
 pub fn draw_bg() {
     BG_LINES.iter().for_each(|line| {
         let a = line.0;
@@ -42,8 +45,4 @@ pub fn draw_bg() {
 
         draw::draw_line(a.x, a.y, b.x, b.y, 1.5, WHITE);
     })
-}
-
-lazy_static! {
-    static ref BG_LINES: Vec<(Vec2, Vec2)> = lines();
 }

@@ -1,20 +1,19 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-};
+use std::collections::{HashMap, HashSet};
 
 use json::JsonValue;
 use lyon::{
     lyon_tessellation::{FillTessellator, StrokeTessellator, VertexBuffers},
     path::Path,
 };
-use macroquad::{models::Mesh, prelude::vec2};
+use macroquad::{file, models::Mesh, prelude::vec2};
 
 use nalgebra::{point, Point2};
+use once_cell::{sync::Lazy, sync::OnceCell};
 use rapier2d::{
     math::{Isometry, Real},
     prelude::{
-        Collider, ColliderBuilder, InteractionGroups, RigidBody, RigidBodyBuilder, SharedShape,
+        ActiveEvents, Collider, ColliderBuilder, InteractionGroups, RigidBody, RigidBodyBuilder,
+        SharedShape,
     },
 };
 
@@ -29,11 +28,27 @@ use super::{
 };
 
 #[derive(Clone, Debug)]
-pub struct FirePoints(Vec<[f32; 2]>);
+pub struct FirePoints {
+    pub points: Vec<[f32; 2]>,
+    point2s: OnceCell<Vec<Point2<Real>>>,
+}
 
 impl FirePoints {
-    pub fn to_points(&self) -> Vec<Point2<Real>> {
-        self.0.clone().iter().map(|v| point!(v[0], v[1])).collect()
+    pub fn new(points: Vec<[f32; 2]>) -> Self {
+        Self {
+            points,
+            point2s: OnceCell::new(),
+        }
+    }
+
+    pub fn get_point2s(&self) -> &Vec<Point2<Real>> {
+        self.point2s.get_or_init(|| {
+            self.points
+                .clone()
+                .iter()
+                .map(|v| point!(v[0], v[1]))
+                .collect()
+        })
     }
 }
 
@@ -69,10 +84,9 @@ pub struct Resource {
     pub info: Info,
 }
 
-lazy_static! {
-    static ref OPT: Options = svg_option();
-    static ref HIDDEN_ELEMENTS: HashSet<String> = HashSet::from(["collider".to_string()]);
-}
+static OPT: Lazy<Options> = Lazy::new(svg_option);
+static HIDDEN_ELEMENTS: Lazy<HashSet<String>> =
+    Lazy::new(|| HashSet::from(["collider".to_string()]));
 
 fn svg_option() -> Options {
     let opt = Options::default();
@@ -134,7 +148,7 @@ fn get_attributes(elements: &HashMap<String, roxmltree::Node>) -> Option<Attribu
     let collision_group = collision_group.and_then(|v| Some(*Collision::from_str(v)));
 
     let fire_points = if let JsonValue::Array(fire_points) = &attributes["fire_points"] {
-        Some(FirePoints(
+        Some(FirePoints::new(
             fire_points
                 .chunks_exact(2)
                 .filter_map(|v| Some([v[0].as_f32()?, v[1].as_f32()?]))
@@ -196,13 +210,15 @@ fn get_collider(
     let offset = (aabb.mins - aabb.maxs) / TWO;
     result.set_position(offset.into());
 
+    result.set_active_events(ActiveEvents::all());
+
     Some(result)
 }
 
-pub fn load_resource(path: &str) -> Resource {
+pub async fn load_resource(path: &str) -> Resource {
     log::info!("loading resource at {}", path);
 
-    let file = fs::read_to_string(path).unwrap();
+    let file = file::load_string(path).await.unwrap();
     let file = Document::parse(&file).unwrap();
 
     let elements = file

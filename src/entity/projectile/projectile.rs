@@ -1,19 +1,18 @@
 use macroquad::prelude::get_time;
 use nalgebra::vector;
-use rapier2d::{
-    math::Isometry,
-    prelude::{ColliderSet, RigidBodySet},
-};
+use rapier2d::{math::Isometry, prelude::RigidBodySet};
 
 use crate::{
     entity::{
         drawable::Drawable,
-        entity::{Entity, EntityHolder},
-        physics::{Physics, PhysicsLike},
+        entity::{Entity, EntityBuilder, EntityHolder},
+        physics::PhysicsLike,
     },
+    world::world_mutator::WorldMutator,
     BULLET,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub struct Projectile {
     pub source: EntityHolder,
     pub fired_time: f64,
@@ -22,32 +21,29 @@ pub struct Projectile {
 pub trait ProjectileLike {
     fn spawn_projectile(
         source: EntityHolder,
-        source_entity: &Entity,
+        source_entity: Entity,
         lifetime: f64,
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-    ) -> Option<Self>
-    where
-        Self: Sized;
+    ) -> Option<WorldMutator>;
 
-    fn update_projectile(&self, current_time: f64) -> Option<bool>;
+    fn update_projectile(&self, current_time: f64) -> Option<WorldMutator>;
 }
 
 fn set_projectile_physics(
-    source_entity: &Entity,
-    physics: &Physics,
+    entity: &mut Entity,
+    source_entity: Entity,
     rigid_body_set: &mut RigidBodySet,
 ) -> Option<()> {
-    let rotation = source_entity.rotation(rigid_body_set)?;
-
+    let rotation = source_entity.rotation(&rigid_body_set)?;
     let rotation_v = rotation.scale(800.0);
-    let velocity = source_entity.velocity(rigid_body_set)? + vector!(rotation_v.re, rotation_v.im);
 
-    let position = source_entity.transform(rigid_body_set)?;
-    let fire_point = source_entity.resource.info.fire_points()?.to_points()[0];
-    let fire_point = position.transform_point(&fire_point);
+    let velocity = source_entity.velocity(&rigid_body_set)? + vector!(rotation_v.re, rotation_v.im);
 
-    let rigid_body = rigid_body_set.get_mut(physics.rigid_body_handle)?;
+    let fire_point = source_entity.resource.info.fire_points()?.get_point2s()[0];
+    let fire_point = source_entity
+        .transform(&rigid_body_set)?
+        .transform_point(&fire_point);
+
+    let rigid_body = entity.get_rigid_body_mut(rigid_body_set)?;
 
     rigid_body.set_position(Isometry::new(fire_point.coords, rotation.angle()), false);
     rigid_body.set_linvel(velocity, false);
@@ -58,36 +54,35 @@ fn set_projectile_physics(
 impl ProjectileLike for Entity {
     fn spawn_projectile(
         source: EntityHolder,
-        source_entity: &Entity,
+        source_entity: Entity,
         lifetime: f64,
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-    ) -> Option<Self> {
-        let physics = Physics::from_resource(&BULLET, rigid_body_set, collider_set)?;
+    ) -> Option<WorldMutator> {
+        let drawable = Drawable::from_resource(&BULLET)?;
+        let projectile = Projectile {
+            source,
+            fired_time: get_time(),
+            lifetime,
+        };
 
-        set_projectile_physics(&source_entity, &physics, rigid_body_set);
-
-        Some(Self {
-            resource: &BULLET,
-            physics: Some(physics),
-            drawable: Drawable::from_resource(&BULLET),
-            player: None,
-            projectile: Some(Projectile {
-                source,
-                fired_time: get_time(),
-                lifetime,
-            }),
-        })
+        Some(
+            EntityBuilder::new(&BULLET)
+                .drawable(drawable)
+                .projectile(projectile)
+                .build_mutator(Box::new(move |entity, rigid_body_set| {
+                    set_projectile_physics(entity, source_entity, rigid_body_set)?;
+                    None
+                })),
+        )
     }
 
-    fn update_projectile(&self, current_time: f64) -> Option<bool> {
+    fn update_projectile(&self, current_time: f64) -> Option<WorldMutator> {
         let time_elapsed = current_time - self.projectile.as_ref()?.fired_time;
         let lifetime = self.projectile.as_ref()?.lifetime;
 
         if time_elapsed > lifetime {
-            return Some(true);
+            return Some(WorldMutator::Remove(self.entity_holder?));
         }
         // todo add collision code
-        Some(false)
+        None
     }
 }

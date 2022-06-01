@@ -2,6 +2,7 @@ use macroquad::models::{draw_mesh, Mesh, Vertex};
 use macroquad::prelude::{self, vec2, vec3, Color, Vec2, Vec3, Vec3Swizzles, RED};
 
 use nalgebra::{point, vector};
+use once_cell::sync::Lazy;
 use rapier2d::math::{Isometry, Real};
 use rapier2d::prelude::{Collider, ColliderSet, RigidBody};
 
@@ -26,9 +27,7 @@ fn offsets() -> Vec<Vec2> {
     ]
 }
 
-lazy_static! {
-    static ref OFFSETS: Vec<Vec2> = offsets();
-}
+pub static OFFSETS: Lazy<Vec<Vec2>> = Lazy::new(offsets);
 
 fn draw_collider(collider: Option<&Collider>) -> Option<()> {
     let polygon = collider?.shape().as_compound()?;

@@ -1,40 +1,32 @@
-use std::cell::RefCell;
-
 use macroquad::miniquad::{KeyCode, MouseButton};
 use macroquad::prelude::{get_time, is_key_down, is_mouse_button_down};
 
 use nalgebra::{vector, Complex, ComplexField, Unit};
-use rapier2d::{
-    math::Real,
-    prelude::{ColliderSet, RigidBodySet},
-};
+use rapier2d::math::Real;
+use rapier2d::prelude::RigidBody;
 
 use crate::info::mouse::MouseInfo;
+use crate::world::world_mutator::WorldMutator;
 
 use super::{
     entity::{Entity, EntityHolder},
-    physics::PhysicsLike,
     projectile::projectile::ProjectileLike,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub struct Player {
     pub mouse_info: MouseInfo,
-    pub last_fire_time: RefCell<f64>,
+    pub last_fire_time: f64,
 }
 
 pub trait PlayerLike {
     fn mouse_info(&self) -> Option<&MouseInfo>;
     fn mouse_info_mut(&mut self) -> Option<&mut MouseInfo>;
-    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<Real>;
+    fn angle_to_mouse(&self, rigid_body: &RigidBody) -> Option<Real>;
 
-    fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()>;
+    fn update_input(&self, rigid_body: &mut RigidBody) -> Option<()>;
 
-    fn update_fire(
-        &self,
-        player: &EntityHolder,
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-    ) -> Option<Entity>;
+    fn update_fire(&mut self, player: &EntityHolder) -> Option<WorldMutator>;
 }
 
 impl PlayerLike for Entity {
@@ -46,29 +38,24 @@ impl PlayerLike for Entity {
         Some(&mut self.player.as_mut()?.mouse_info)
     }
 
-    fn angle_to_mouse(&self, rigid_body_set: &RigidBodySet) -> Option<Real> {
-        let pos = *self.pos(rigid_body_set)?;
+    fn angle_to_mouse(&self, rigid_body: &RigidBody) -> Option<Real> {
+        let pos = rigid_body.translation();
         let mouse_pos = self.mouse_info()?.pos;
         let mouse_pos = Complex::new(mouse_pos.x - pos.x, mouse_pos.y - pos.y);
         let mouse_pos = Unit::from_complex(mouse_pos);
 
-        Some(self.rotation(rigid_body_set)?.angle_to(&mouse_pos))
+        Some(rigid_body.rotation().angle_to(&mouse_pos))
     }
 
-    fn update_input(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
-        self.update_rotation(rigid_body_set);
-        self.update_velocity(rigid_body_set);
+    fn update_input(&self, rigid_body: &mut RigidBody) -> Option<()> {
+        self.update_rotation(rigid_body);
+        self.update_velocity(rigid_body);
 
         Some(())
     }
 
-    fn update_fire(
-        &self,
-        player: &EntityHolder,
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-    ) -> Option<Entity> {
-        let mut last_fire_time = self.player.as_ref()?.last_fire_time.borrow_mut();
+    fn update_fire(&mut self, player: &EntityHolder) -> Option<WorldMutator> {
+        let ref mut last_fire_time = self.player.as_mut()?.last_fire_time;
 
         if is_mouse_button_down(MouseButton::Right) {
             let current_time = get_time();
@@ -76,13 +63,7 @@ impl PlayerLike for Entity {
             if (current_time - *last_fire_time) > 0.2 {
                 *last_fire_time = current_time;
 
-                return Some(Entity::spawn_projectile(
-                    *player,
-                    self,
-                    1.0,
-                    rigid_body_set,
-                    collider_set,
-                )?);
+                return Some(Entity::spawn_projectile(*player, *self, 1.0)?);
             }
         }
 
@@ -91,8 +72,7 @@ impl PlayerLike for Entity {
 }
 
 impl Entity {
-    fn update_velocity(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
-        let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
+    fn update_velocity(&self, rigid_body: &mut RigidBody) -> Option<()> {
         let mut velocity = *rigid_body.linvel();
 
         if is_key_down(KeyCode::S) {
@@ -109,10 +89,8 @@ impl Entity {
         Some(())
     }
 
-    fn update_rotation(&self, rigid_body_set: &mut RigidBodySet) -> Option<()> {
-        let angle_to_mouse = self.angle_to_mouse(rigid_body_set)?;
-
-        let rigid_body = self.get_rigid_body_mut(rigid_body_set)?;
+    fn update_rotation(&self, rigid_body: &mut RigidBody) -> Option<()> {
+        let angle_to_mouse = self.angle_to_mouse(rigid_body)?;
 
         let angvel = angle_to_mouse * 3.0;
 

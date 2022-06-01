@@ -9,7 +9,7 @@ use crate::{
     CURSOR,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct MouseInfo {
     pub pos: Vec2,
 }

@@ -10,13 +10,12 @@ use macroquad::{
     models::Vertex,
     prelude::{Color, Vec2, Vec3},
 };
+use once_cell::sync::Lazy;
 use rapier2d::math::Real;
 
 pub type Geometry = VertexBuffers<Vertex, u16>;
 
-lazy_static! {
-    static ref FALLBACK_COLOR: usvg::Color = usvg::Color::black();
-}
+static FALLBACK_COLOR: Lazy<usvg::Color> = Lazy::new(usvg::Color::black);
 
 fn to_vertex<T>(pos: Point2D<Real, T>, color: usvg::Color, alpha: f32) -> Vertex {
     Vertex {
@@ -130,4 +129,28 @@ pub fn stroke(
             )
             .unwrap();
     }
+}
+
+macro_rules! load_resource_lazy {
+    ($p:ident) => {
+        Lazy::new(|| resource::load_resource($p).now_or_never().unwrap())
+    };
+}
+
+macro_rules! resolve {
+    ($e:expr) => {
+        async {
+            let _ = *$e;
+        }
+    };
+}
+
+macro_rules! resolve_all {
+    ( $( $x:expr ),* ) => {
+        tokio::join!(
+            $(
+                resolve!($x),
+            )*
+        );
+    };
 }

@@ -4,6 +4,7 @@ use crate::util::{draw, resource::Resource};
 
 use super::{entity::Entity, physics::PhysicsLike};
 
+#[derive(Clone, Copy)]
 pub struct Drawable<'a> {
     pub resource: &'a Resource,
 }
